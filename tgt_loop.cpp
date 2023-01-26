@@ -76,6 +76,8 @@ static int loop_recovery_tgt(struct ublksrv_dev *dev, int type)
 		return fd;
 	}
 
+	syslog(LOG_INFO, "Debug =======> fd=%d\n", fd);
+
 	if (direct_io)
 		fcntl(fd, F_SETFL, O_DIRECT);
 
@@ -149,6 +151,8 @@ static int loop_init_tgt(struct ublksrv_dev *dev, int type, int argc, char
 				__func__, file);
 		return -2;
 	}
+
+	syslog(LOG_INFO, "Debug =======> fd=%d\n", fd);
 
 	if (fstat(fd, &st) < 0)
 		return -2;
@@ -282,6 +286,7 @@ static int loop_queue_tgt_io(const struct ublksrv_queue *q,
 		io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
 		break;
 	case UBLK_IO_OP_WRITE:
+		syslog(LOG_INFO, "Debug ====> write\n");
 		io_uring_prep_write(sqe, 1 /*fds[1]*/,
 				(void *)iod->addr,
 				iod->nr_sectors << 9,

@@ -68,6 +68,7 @@ static int __ublksrv_tgt_init(struct _ublksrv_dev *dev, const char *type_name,
 
 	if (!ops->init_tgt)
 		return -EINVAL;
+
 	if (!ops->handle_io_async)
 		return -EINVAL;
 	if (!ops->alloc_io_buf ^ !ops->free_io_buf)
@@ -76,9 +77,9 @@ static int __ublksrv_tgt_init(struct _ublksrv_dev *dev, const char *type_name,
 	optind = 0;     /* so that we can parse our arguments */
 	tgt->ops = ops;
 
-	if (dev->ctrl_dev->dev_info.state != UBLK_S_DEV_QUIESCED)
+	if (dev->ctrl_dev->dev_info.state != UBLK_S_DEV_QUIESCED) {
 		ret = ops->init_tgt(local_to_tdev(dev), type, argc, argv);
-	else {
+	} else {
 		if (ops->recovery_tgt)
 			ret = ops->recovery_tgt(local_to_tdev(dev), type);
 		else
