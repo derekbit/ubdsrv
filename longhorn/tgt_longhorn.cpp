@@ -7,38 +7,14 @@
 
 uint32_t seq;
 
+static inline struct lh_client_conn *dev_to_conn(const struct ublksrv_dev *dev)
+{
+	return (struct lh_client_conn *) dev->tgt.tgt_data;
+}
+
 static uint32_t new_seq() {
     return __sync_fetch_and_add(&seq, 1);
 }
-
-/*
-static int lh_client_open_conn(char *socket_path) {
-    struct sockaddr_un addr;
-    int fd;
-
-    fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd == -1) {
-        errno = EFAULT;
-        return -1;
-    }
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    if (strlen(socket_path) >= 108) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    strncpy(addr.sun_path, socket_path, strlen(socket_path));
-
-    if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-        errno = EFAULT;
-        return -1;
-    }
-
-    return fd;
-}
-*/
 
 static int longhorn_init_tgt(struct ublksrv_dev *dev, int type, int argc, char *argv[])
 {
@@ -54,7 +30,7 @@ static int longhorn_init_tgt(struct ublksrv_dev *dev, int type, int argc, char *
     char *jbuf;
     int opt;
     char *sock_path = NULL;
-    int fd;
+    struct lh_client_conn *conn = NULL;
     uint64_t size = 0;
     struct ublksrv_tgt_base_json tgt_json;
     struct ublk_params p;
@@ -77,13 +53,13 @@ static int longhorn_init_tgt(struct ublksrv_dev *dev, int type, int argc, char *
 		}
 	}
 
-    fd = lh_client_open_conn(sock_path);
-    if (fd < 0) {
+    conn = lh_client_open_conn(sock_path);
+    if (!conn) {
         syslog(LOG_ERR, "failed to open %s: %s\n", sock_path, strerror(errno));
         return -1;
     }
 
-    syslog(LOG_INFO, "Established unix domain socket connection to %s: fd=%d\n", sock_path, fd);
+    syslog(LOG_INFO, "Established unix domain socket connection to %s\n", sock_path);
 
     p = (struct ublk_params) {
 		.types = UBLK_PARAM_TYPE_BASIC,
@@ -110,9 +86,9 @@ static int longhorn_init_tgt(struct ublksrv_dev *dev, int type, int argc, char *
 
     tgt->dev_size = size;
     tgt->tgt_ring_depth = info->queue_depth;
-	tgt->nr_fds = 1;
-	tgt->fds[1] = fd;
-	//tgt->tgt_data = 
+	//tgt->nr_fds = 1;
+	//tgt->fds[1] = fd;
+	tgt->tgt_data = conn;
     //tgt->iowq_max_workers = 
 
     jbuf = ublksrv_tgt_realloc_json_buf(dev, &jbuf_size);
@@ -143,7 +119,10 @@ static int longhorn_init_tgt(struct ublksrv_dev *dev, int type, int argc, char *
 
 static void longhorn_deinit_tgt(const struct ublksrv_dev *dev)
 {
-    close(dev->tgt.fds[1]);
+    struct lh_client_conn *conn = dev_to_conn(dev);
+
+    lh_client_close_conn(conn);
+    //close(dev->tgt.fds[1]);
 }
 
 static int longhorn_queue_tgt_io(const struct ublksrv_queue *q, const struct ublk_io_data *data, int tag)

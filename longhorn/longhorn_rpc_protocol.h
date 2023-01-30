@@ -2,6 +2,9 @@
 #ifndef LONGHORN_RPC_PROTOCOL_H
 #define LONGHORN_RPC_PROTOCOL_H
 
+#include <stdint.h>
+#include "uthash.h"
+
 #define MAGIC_VERSION 0x1b01 // LongHorn01
 
 struct message_header {
@@ -21,6 +24,13 @@ struct message {
     uint32_t    size;
     uint32_t    data_length;
     void*       data;
+
+    pthread_cond_t  cond;
+	pthread_mutex_t mutex;
+
+    UT_hash_handle  hh;
+
+    struct message *next, *prev;
 };
 
 enum {
@@ -33,6 +43,9 @@ enum {
 	TypePing,
 	TypeUnmap
 };
+
+int send_msg(int fd, struct message *msg);
+int receive_msg(int fd, struct message *msg);
 
 
 #endif
