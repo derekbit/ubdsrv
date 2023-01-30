@@ -264,6 +264,7 @@ static int loop_queue_tgt_io(const struct ublksrv_queue *q,
 
 	switch (ublk_op) {
 	case UBLK_IO_OP_FLUSH:
+		syslog(LOG_INFO, "Debug --> UBLK_IO_OP_FLUSH\n");
 		io_uring_prep_sync_file_range(sqe, 1 /*fds[1]*/,
 				iod->nr_sectors << 9,
 				iod->start_sector << 9,
@@ -271,7 +272,9 @@ static int loop_queue_tgt_io(const struct ublksrv_queue *q,
 		io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
 		break;
 	case UBLK_IO_OP_WRITE_ZEROES:
+		syslog(LOG_INFO, "Debug --> UBLK_IO_OP_WRITE_ZEROES\n");
 	case UBLK_IO_OP_DISCARD:
+		syslog(LOG_INFO, "Debug --> UBLK_IO_OP_DISCARD\n");
 		io_uring_prep_fallocate(sqe, 1 /*fds[1]*/,
 				loop_fallocate_mode(iod),
 				iod->start_sector << 9,
@@ -279,6 +282,7 @@ static int loop_queue_tgt_io(const struct ublksrv_queue *q,
 		io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
 		break;
 	case UBLK_IO_OP_READ:
+		syslog(LOG_INFO, "Debug --> UBLK_IO_OP_READ\n");
 		io_uring_prep_read(sqe, 1 /*fds[1]*/,
 				(void *)iod->addr,
 				iod->nr_sectors << 9,
@@ -286,6 +290,7 @@ static int loop_queue_tgt_io(const struct ublksrv_queue *q,
 		io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
 		break;
 	case UBLK_IO_OP_WRITE:
+		syslog(LOG_INFO, "Debug --> UBLK_IO_OP_WRITE\n");
 		syslog(LOG_INFO, "Debug ====> write\n");
 		io_uring_prep_write(sqe, 1 /*fds[1]*/,
 				(void *)iod->addr,
@@ -313,6 +318,7 @@ static int loop_queue_tgt_io(const struct ublksrv_queue *q,
 static co_io_job __loop_handle_io_async(const struct ublksrv_queue *q,
 		const struct ublk_io_data *data, int tag)
 {
+
 	int ret;
 	struct ublk_io_tgt *io = __ublk_get_io_tgt_data(data);
 
@@ -374,12 +380,12 @@ static void loop_deinit_tgt(const struct ublksrv_dev *dev)
 struct ublksrv_tgt_type  loop_tgt_type = {
 	.handle_io_async = loop_handle_io_async,
 	.tgt_io_done = loop_tgt_io_done,
-	.usage_for_add	=  loop_usage_for_add,
+	//.usage_for_add	=  loop_usage_for_add,
 	.init_tgt = loop_init_tgt,
 	.deinit_tgt	=  loop_deinit_tgt,
 	.type	= UBLKSRV_TGT_TYPE_LOOP,
 	.name	=  "loop",
-	.recovery_tgt = loop_recovery_tgt,
+	//.recovery_tgt = loop_recovery_tgt,
 };
 
 static void tgt_loop_init() __attribute__((constructor));

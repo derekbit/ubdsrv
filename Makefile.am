@@ -17,7 +17,7 @@ noinst_PROGRAMS = demo_null demo_event
 ublk_SOURCES = ublksrv_tgt.cpp tgt_null.cpp tgt_loop.cpp qcow2/tgt_qcow2.cpp \
 			   qcow2/qcow2.cpp qcow2/qcow2_meta.cpp qcow2/utils.cpp \
 			   qcow2/qcow2_flush_meta.cpp \
-			   longhorn/tgt_longhorn.cpp longhorn/longhorn_rpc_client.c longhorn/longhorn_rpc_protocol.c
+			   longhorn/tgt_longhorn.cpp longhorn/longhorn_rpc_client.cpp longhorn/longhorn_rpc_protocol.cpp
 ublk_CFLAGS = $(WARNINGS_CFLAGS) $(LIBURING_CFLAGS) $(PTHREAD_CFLAGS)
 ublk_CPPFLAGS = $(ublk_CFLAGS) -I$(top_srcdir)/include
 ublk_LDADD = lib/libublksrv.la $(LIBURING_LIBS) $(PTHREAD_LIBS)

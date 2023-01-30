@@ -24,7 +24,7 @@ struct lh_client_conn {
     */
 };
 
-int lh_client_open_conn(char *socket_path);
+extern int lh_client_open_conn(char *socket_path);
 
 
 #endif
