@@ -59,28 +59,28 @@ static void *process_response(void *arg)
         }
 
         if (res->type == TypeClose) {
-            fprintf(stderr, "Receive close message, about to end the connection\n");
+            syslog(LOG_ERR, "Receive close message, about to end the connection\n");
             break;
         }
 
         switch (res->type) {
         case TypeRead:
         case TypeWrite:
-            fprintf(stderr, "Wrong type for response %d of seq %d\n", res->type, res->seq);
+            syslog(LOG_ERR, "Wrong type for response %d of seq %d\n", res->type, res->seq);
             continue;
         case TypeError:
-            fprintf(stderr, "Receive error for response %d of seq %d\n", res->type, res->seq);
+            syslog(LOG_ERR, "Receive error for response %d of seq %d\n", res->type, res->seq);
             /* fall through so we can response to caller */
         case TypeEOF:
         case TypeResponse:
             break;
         default:
-            fprintf(stderr, "Unknown message type %d\n", res->type);
+            syslog(LOG_ERR, "Unknown message type %d\n", res->type);
         }
 
         req = find_and_remove_request_from_queue(conn, res->seq);
         if (!req) {
-            fprintf(stderr, "Unknown response sequence %d\n", res->seq);
+            syslog(LOG_ERR, "Unknown response sequence %d\n", res->seq);
             free(res->data);
             continue;
         }
@@ -106,7 +106,7 @@ static void *process_response(void *arg)
     free(res);
 
     if (ret != 0) {
-        fprintf(stderr, "Receive response returned error\n");
+        syslog(LOG_ERR, "Receive response returned error\n");
     }
 
     lh_client_close_conn(conn);
