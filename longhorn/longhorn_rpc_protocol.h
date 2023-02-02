@@ -39,4 +39,7 @@ enum {
 int send_msg(int fd, struct message *msg);
 int receive_msg(int fd, struct message *msg);
 
+ssize_t read_full(int fd, void *buf, ssize_t len);
+ssize_t write_full(int fd, void *buf, ssize_t len);
+
 #endif

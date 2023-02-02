@@ -7,7 +7,7 @@
 
 #include "longhorn_rpc_protocol.h"
 
-static ssize_t read_full(int fd, void *buf, ssize_t len)
+ssize_t read_full(int fd, void *buf, ssize_t len)
 {
     ssize_t nread = 0;
     ssize_t ret;
@@ -28,7 +28,7 @@ static ssize_t read_full(int fd, void *buf, ssize_t len)
     return nread;
 }
 
-static ssize_t write_full(int fd, void *buf, ssize_t len)
+ssize_t write_full(int fd, void *buf, ssize_t len)
 {
     ssize_t nwrote = 0;
     ssize_t ret;

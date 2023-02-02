@@ -124,17 +124,14 @@ static void longhorn_deinit_tgt(const struct ublksrv_dev *dev)
 
 static int write_request(const struct ublksrv_queue *q, uint8_t *serialized_req)
 {
-	int fd = q->dev->tgt.fds[1];
-
-	return write(fd, serialized_req, MESSAGE_HEADER_SIZE);
+	return write_full(q->dev->tgt.fds[1], serialized_req, MESSAGE_HEADER_SIZE);
 }
 
 static int write_request_data(const struct ublksrv_queue *q, const struct ublk_io_data *data)
 {
 	const struct ublksrv_io_desc *iod = data->iod;
-	int fd = q->dev->tgt.fds[1];
 
-	return write(q->dev->tgt.fds[1], (void *) iod->addr, iod->nr_sectors << 9);
+	return write_full(q->dev->tgt.fds[1], (void *) iod->addr, iod->nr_sectors << 9);
 }
 
 static uint32_t io_type_from_ublk_op(unsigned ublk_op)
