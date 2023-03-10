@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: GPL-2.0
+#ifndef LONGHORN_PROTOCOL_H
+#define LONGHORN_PROTOCOL_H
+
+#include <stdint.h>
+
+#define LONGHORN_MESSAGE_MAGIC 0x1b01 // LongHorn01
+
+struct __attribute__ ((__packed__)) message {
+    uint16_t    magic;
+    uint32_t    seq;
+    uint32_t    type;
+    int64_t     offset;
+    uint32_t    size;
+    uint32_t    data_length;
+};
+
+enum {
+    LONGHORN_CMD_TYPE_READ = 0,
+    LONGHORN_CMD_TYPE_WRITE,
+    LONGHORN_CMD_TYPE_RESPONSE,
+    LONGHORN_CMD_TYPE_ERROR,
+    LONGHORN_CMD_TYPE_EOF,
+    LONGHORN_CMD_TYPE_CLOSE,
+    LONGHORN_CMD_TYPE_PING,
+    LONGHORN_CMD_TYPE_UNMAP,
+};
+
+#define _LONGHORN_OP_BASE     (1)
+#define LONGHORN_OP_READ      (_LONGHORN_OP_BASE + LONGHORN_CMD_TYPE_READ)
+#define LONGHORN_OP_WRITE     (_LONGHORN_OP_BASE + LONGHORN_CMD_TYPE_WRITE)
+#define LONGHORN_OP_RESPONSE  (_LONGHORN_OP_BASE + LONGHORN_CMD_TYPE_RESPONSE) 
+#define LONGHORN_OP_ERROR     (_LONGHORN_OP_BASE + LONGHORN_CMD_TYPE_ERROR)
+#define LONGHORN_OP_EOF       (_LONGHORN_OP_BASE + LONGHORN_CMD_TYPE_EOF)
+#define LONGHORN_OP_CLOSE     (_LONGHORN_OP_BASE + LONGHORN_CMD_TYPE_CLOSE)
+#define LONGHORN_OP_PING      (_LONGHORN_OP_BASE + LONGHORN_CMD_TYPE_PING)
+#define LONGHORN_OP_UNMAP     (_LONGHORN_OP_BASE + LONGHORN_CMD_TYPE_UNMAP)
+
+int openunix(const char *path);
+
+#endif /* LONGHORN_PROTOCOL_H */
