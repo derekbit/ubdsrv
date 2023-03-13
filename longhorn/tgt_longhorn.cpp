@@ -113,8 +113,7 @@ static int longhorn_queue_req(const struct ublksrv_queue *q,
     q_data->last_send_sqe = sqe;
     q_data->chained_send_ios += 1;
 
-
-    longhorn_info("%s: queue io op %d(%llu %x %llx) ios(%u %u)"
+    longhorn_dbg(UBLK_DBG_IO, "%s: queue io op %d(%llu %x %llx) ios(%u %u)"
         " (qid %d tag %u, cmd_op %u target: %d, user_data %llx)\n",
         __func__, ublk_op, data->iod->start_sector,
         data->iod->nr_sectors, sqe->addr,
@@ -128,18 +127,23 @@ int longhorn_setup_tgt(struct ublksrv_dev *dev, char *sock_path, unsigned long l
 {
     struct ublksrv_tgt_info *tgt = &dev->tgt;
     const struct ublksrv_ctrl_dev_info *info = ublksrv_ctrl_get_dev_info(ublksrv_get_ctrl_dev(dev));
-    int fd;
 
     longhorn_info("Establishing unix domain socket connection to %s\n", sock_path);
 
-    fd = openunix(sock_path);
-    if (fd < 0) {
-        longhorn_err("Failed to establish unix domain socket connection to %s: %s", sock_path, strerror(errno));
-        return -1;
-    }
+	for (int i = 0; i < info->nr_hw_queues; i++) {
+		int fd;
+		unsigned int opts = 0;
 
-    tgt->fds[1] = fd;
-    tgt->nr_fds = 1;
+        fd = openunix(sock_path);
+        if (fd < 0) {
+            longhorn_err("Failed to establish unix domain socket connection to %s: %s", sock_path, strerror(errno));
+            return -1;
+        }
+
+		tgt->fds[i + 1] = fd;
+	}
+
+    tgt->nr_fds = info->nr_hw_queues;
 
     tgt->dev_size = dev_size;
 
@@ -236,12 +240,15 @@ static void longhorn_deinit_tgt(const struct ublksrv_dev *dev)
 {
     const ublksrv_tgt_info *tgt = &dev->tgt;
     const struct ublksrv_ctrl_dev_info *info = ublksrv_ctrl_get_dev_info(ublksrv_get_ctrl_dev(dev));
-    int fd = tgt->fds[1];
 
     longhorn_info("Deinitializing Longhorn target\n");
 
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
+    for (int i = 0; i < info->nr_hw_queues; i++) {
+		int fd = tgt->fds[i + 1];
+
+		shutdown(fd, SHUT_RDWR);
+		close(fd);
+	}
 }
 
 static int longhorn_init_queue(const struct ublksrv_queue *q, void **queue_data_ptr)
@@ -331,7 +338,7 @@ fail:
     ublksrv_complete_io(q, data->tag, ret);
     q_data->in_flight_ios -= 1;
 
-    longhorn_info("%s: tag %d ret %d\n", __func__, data->tag, ret);
+    longhorn_dbg(UBLK_DBG_IO, "%s: tag %d ret %d\n", __func__, data->tag, ret);
 
     co_return;
 }
@@ -470,7 +477,8 @@ static inline int longhorn_start_recv(const struct ublksrv_queue *q,
     sqe->user_data = build_user_data(tag, op, 0, 1);
 
     ublk_assert(q_data->in_flight_ios);
-    longhorn_info("%s: q_inflight %d queue recv %s"
+
+    longhorn_dbg(UBLK_DBG_IO, "%s: q_inflight %d queue recv %s"
             "(qid %d tag %u, target: %d, user_data %llx)\n",
             __func__, q_data->in_flight_ios, reply ? "reply" : "io",
             q->q_id, tag, 1, sqe->user_data);
@@ -498,7 +506,7 @@ static int longhorn_do_recv(const struct ublksrv_queue *q,
 {
     unsigned msg_flags = MSG_DONTWAIT | MSG_WAITALL;
     int i = 0, done = 0;
-    const int loops = len < 512 ? 16 : 32;
+    const int loops = len < 512 ? 32 : 64;
     int ret;
 
     while (i++ < loops && done < len) {
@@ -511,8 +519,9 @@ static int longhorn_do_recv(const struct ublksrv_queue *q,
     if (done == len)
         return done;
 
-    longhorn_info("%s: sync(non-blocking) recv %d(%s)/%d/%u\n",
+    longhorn_dbg(UBLK_DBG_IO, "%s: sync(non-blocking) recv %d(%s)/%d/%u\n",
         __func__, ret, strerror(errno), done, len);
+
     return longhorn_start_recv(q, longhorn_data, buf, len, len < 512, done);
 }
 
