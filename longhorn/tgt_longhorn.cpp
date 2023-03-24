@@ -32,10 +32,10 @@ static int req_to_longhorn_cmd_type(const struct ublksrv_io_desc *iod)
         return LONGHORN_CMD_TYPE_READ;
     case UBLK_IO_OP_WRITE:
         return LONGHORN_CMD_TYPE_WRITE;
+    case UBLK_IO_OP_DISCARD:
+        return LONGHORN_CMD_TYPE_UNMAP;
     //case UBLK_IO_OP_FLUSH:
     //    return LONGHORN_CMD_TYPE_FLUSH;    
-    //case UBLK_IO_OP_DISCARD:
-    //    return LONGHORN_CMD_TYPE_UNMAP;
     //case UBLK_IO_OP_WRITE_SAME:
     //    return LONGHORN_CMD_TYPE_WRITE_SAME;
     //case UBLK_IO_OP_WRITE_ZEROES:
@@ -67,6 +67,7 @@ static inline void __longhorn_build_req(const struct ublksrv_queue *q,
     req->type = htole32(type);
     req->offset = cpu_to_le64((uint64_t)data->iod->start_sector << 9);
     req->size = htole32(data->iod->nr_sectors << 9);
+
     if (type == LONGHORN_CMD_TYPE_WRITE) {
         req->data_length = htole32(data->iod->nr_sectors << 9);
     } else {
@@ -198,7 +199,7 @@ static int longhorn_init_tgt(struct ublksrv_dev *dev, int type, int argc, char *
     }
 
     params = (struct ublk_params) {
-        .types = UBLK_PARAM_TYPE_BASIC,
+        .types = UBLK_PARAM_TYPE_BASIC | UBLK_PARAM_TYPE_DISCARD,
         .basic = {
             .attrs = 0U,
             .logical_bs_shift = 9,
@@ -208,7 +209,14 @@ static int longhorn_init_tgt(struct ublksrv_dev *dev, int type, int argc, char *
             .max_sectors = info->max_io_buf_bytes >> 9,
             .dev_sectors = tgt->dev_size >> 9,
         },
+        .discard = {
+            .discard_granularity = 1U << 9,
+            .max_discard_sectors = UINT_MAX >> 9,
+            .max_discard_segments	= 1,
+        }
     };
+
+
 
     tgt_json = (struct ublksrv_tgt_base_json) {
         .name = "longhorn",
@@ -439,7 +447,7 @@ static void longhorn_handle_send_bg(const struct ublksrv_queue *q, struct longho
             io->co = __longhorn_handle_io_async(q, data, io);
         }
 
-        ios.clear();
+    ios.clear();
 
         if (q_data->chained_send_ios && !q_data->send_sqe_chain_busy)
             q_data->send_sqe_chain_busy = 1;
